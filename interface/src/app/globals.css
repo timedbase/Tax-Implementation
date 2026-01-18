@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+:root {
+  /* Vercel Design System Colors */
+  --geist-foreground: #000;
+  --geist-background: #fff;
+  --accents-1: #fafafa;
+  --accents-2: #eaeaea;
+  --accents-3: #999;
+  --accents-4: #888;
+  --accents-5: #666;
+  --accents-6: #444;
+  --accents-7: #333;
+  --accents-8: #111;
+  --geist-success: #0070f3;
+  --geist-error: #e00;
+  --geist-warning: #f5a623;
+
+  /* Dark mode */
+  --ds-background-100: #0a0a0a;
+  --ds-background-200: #111111;
+  --ds-gray-100: #1a1a1a;
+  --ds-gray-200: #2e2e2e;
+  --ds-gray-400: #454545;
+  --ds-gray-600: #878787;
+  --ds-gray-700: #a1a1a1;
+  --ds-gray-900: #ededed;
+  --ds-gray-1000: #fafafa;
+}
+
+@theme inline {
+  --color-background: var(--ds-background-100);
+  --color-foreground: var(--ds-gray-1000);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--ds-background-100);
+  color: var(--ds-gray-1000);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus styles - Vercel compliant */
+:focus-visible {
+  outline: 2px solid var(--ds-gray-400);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ds-gray-400);
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar - Vercel style */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ds-gray-200);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ds-gray-400);
+}
+
+/* Selection */
+::selection {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Typography utilities */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Animations - respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Input styling */
+input,
+textarea {
+  background: var(--ds-background-200);
+  border: 1px solid var(--ds-gray-100);
+  color: var(--ds-gray-1000);
+  font-size: 16px; /* Prevent iOS zoom */
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+input:hover:not(:disabled),
+textarea:hover:not(:disabled) {
+  border-color: var(--ds-gray-200);
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--ds-gray-400);
+  background: var(--ds-background-100);
+  outline: none;
+}
+
+input:disabled,
+textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Touch action for better mobile experience */
+button,
+a {
+  touch-action: manipulation;
+}
+
+/* Safe area support for notched devices */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
