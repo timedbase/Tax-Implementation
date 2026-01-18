@@ -45,14 +45,14 @@ export function FactoryStats() {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-4 mb-8">
+    <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-8">
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-4 text-center"
+          className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-3 md:p-4 text-center"
         >
-          <p className="text-2xl font-semibold mb-1 tabular-nums">{stat.value}</p>
-          <p className="text-sm text-[#666]">{stat.label}</p>
+          <p className="text-lg md:text-2xl font-semibold mb-0.5 md:mb-1 tabular-nums">{stat.value}</p>
+          <p className="text-xs md:text-sm text-[#666]">{stat.label}</p>
         </div>
       ))}
     </div>

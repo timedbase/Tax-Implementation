@@ -24,16 +24,16 @@ function TokenCard({ address, onManage }: { address: `0x${string}`; onManage: ()
   const sellTax = results?.[4]?.result as bigint | undefined;
 
   return (
-    <article className="bg-[#111] border border-[#1a1a1a] rounded-lg p-4 hover:border-[#333] transition-colors">
-      <div className="flex items-start justify-between mb-3">
+    <article className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3 md:p-4 hover:border-[#333] transition-colors">
+      <div className="flex items-start justify-between mb-2 md:mb-3">
         <div className="flex-1">
-          <h3 className="font-semibold">{name || 'Loading...'}</h3>
-          <p className="text-sm text-[#888]">{symbol || '...'}</p>
+          <h3 className="text-sm md:text-base font-semibold">{name || 'Loading...'}</h3>
+          <p className="text-xs md:text-sm text-[#888]">{symbol || '...'}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 md:gap-2">
           <button
             onClick={onManage}
-            className="text-xs px-3 py-1 bg-white text-black font-medium rounded hover:bg-gray-100 transition-colors min-h-[24px]"
+            className="text-xs px-2.5 md:px-3 py-1 bg-white text-black font-medium rounded hover:bg-gray-100 transition-colors min-h-[24px]"
             aria-label={`Manage ${name || 'token'}`}
           >
             Manage
@@ -50,7 +50,7 @@ function TokenCard({ address, onManage }: { address: `0x${string}`; onManage: ()
         </div>
       </div>
 
-      <div className="space-y-2 text-sm">
+      <div className="space-y-1.5 md:space-y-2 text-xs md:text-sm">
         <div className="flex justify-between">
           <span className="text-[#666]">Supply</span>
           <span className="tabular-nums">
@@ -71,7 +71,7 @@ function TokenCard({ address, onManage }: { address: `0x${string}`; onManage: ()
         </div>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-[#1a1a1a]">
+      <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-[#1a1a1a]">
         <p className="text-xs text-[#666] tabular-nums truncate" title={address}>{address}</p>
       </div>
     </article>
@@ -94,10 +94,10 @@ export function MyTokens() {
 
   if (!isConnected) {
     return (
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-6">
-        <h2 className="text-xl font-semibold mb-4">My Tokens</h2>
-        <div className="text-center py-8">
-          <p className="text-[#666] text-sm mb-3">Connect your wallet to view your tokens</p>
+      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">My Tokens</h2>
+        <div className="text-center py-6 md:py-8">
+          <p className="text-[#666] text-xs md:text-sm mb-2 md:mb-3">Connect your wallet to view your tokens</p>
           <p className="text-xs text-[#444]">
             Click "Connect" in the header to get started
           </p>
@@ -108,36 +108,36 @@ export function MyTokens() {
 
   return (
     <>
-      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-6">
-        <h2 className="text-xl font-semibold mb-4">My Tokens</h2>
+      <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">My Tokens</h2>
 
         {isLoading ? (
-          <div className="grid gap-4" role="status" aria-label="Loading tokens">
+          <div className="grid gap-3 md:gap-4" role="status" aria-label="Loading tokens">
             {[1, 2].map((i) => (
-              <div key={i} className="bg-[#111] border border-[#1a1a1a] rounded-lg p-4 animate-pulse">
-                <div className="flex items-start justify-between mb-3">
+              <div key={i} className="bg-[#111] border border-[#1a1a1a] rounded-lg p-3 md:p-4 animate-pulse">
+                <div className="flex items-start justify-between mb-2 md:mb-3">
                   <div className="flex-1">
-                    <div className="h-5 bg-[#1a1a1a] rounded w-32 mb-2"></div>
-                    <div className="h-4 bg-[#1a1a1a] rounded w-16"></div>
+                    <div className="h-4 md:h-5 bg-[#1a1a1a] rounded w-28 md:w-32 mb-1.5 md:mb-2"></div>
+                    <div className="h-3 md:h-4 bg-[#1a1a1a] rounded w-12 md:w-16"></div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="h-4 bg-[#1a1a1a] rounded"></div>
-                  <div className="h-4 bg-[#1a1a1a] rounded"></div>
-                  <div className="h-4 bg-[#1a1a1a] rounded"></div>
+                <div className="space-y-1.5 md:space-y-2">
+                  <div className="h-3 md:h-4 bg-[#1a1a1a] rounded"></div>
+                  <div className="h-3 md:h-4 bg-[#1a1a1a] rounded"></div>
+                  <div className="h-3 md:h-4 bg-[#1a1a1a] rounded"></div>
                 </div>
               </div>
             ))}
           </div>
         ) : !tokens || tokens.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-[#666] text-sm mb-3">You haven&apos;t created any tokens yet</p>
+          <div className="text-center py-6 md:py-8">
+            <p className="text-[#666] text-xs md:text-sm mb-2 md:mb-3">You haven&apos;t created any tokens yet</p>
             <p className="text-xs text-[#444]">
               Fill out the form to create your first token
             </p>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-3 md:gap-4">
             {tokens.map((tokenAddress) => (
               <TokenCard
                 key={tokenAddress}

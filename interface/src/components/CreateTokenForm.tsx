@@ -40,12 +40,12 @@ export function CreateTokenForm() {
   };
 
   return (
-    <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-6">
-      <h2 className="text-xl font-semibold mb-6">Create New Token</h2>
+    <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-4 md:p-6">
+      <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Create New Token</h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
         <div>
-          <label htmlFor="token-name" className="block text-sm text-[#888] mb-2">
+          <label htmlFor="token-name" className="block text-xs md:text-sm text-[#888] mb-1.5 md:mb-2">
             Token Name
           </label>
           <input
@@ -55,7 +55,7 @@ export function CreateTokenForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. My Token"
-            className="w-full px-4 py-3 rounded-lg"
+            className="w-full px-3 py-2.5 md:px-4 md:py-3 rounded-lg text-sm md:text-base"
             disabled={!isConnected || isPending || isConfirming}
             autoComplete="off"
             spellCheck="false"
@@ -64,7 +64,7 @@ export function CreateTokenForm() {
         </div>
 
         <div>
-          <label htmlFor="token-symbol" className="block text-sm text-[#888] mb-2">
+          <label htmlFor="token-symbol" className="block text-xs md:text-sm text-[#888] mb-1.5 md:mb-2">
             Token Symbol
           </label>
           <input
@@ -74,7 +74,7 @@ export function CreateTokenForm() {
             value={symbol}
             onChange={(e) => setSymbol(e.target.value.toUpperCase())}
             placeholder="e.g. MTK"
-            className="w-full px-4 py-3 rounded-lg"
+            className="w-full px-3 py-2.5 md:px-4 md:py-3 rounded-lg text-sm md:text-base"
             disabled={!isConnected || isPending || isConfirming}
             autoComplete="off"
             spellCheck="false"
@@ -83,7 +83,7 @@ export function CreateTokenForm() {
         </div>
 
         <div>
-          <label htmlFor="total-supply" className="block text-sm text-[#888] mb-2">
+          <label htmlFor="total-supply" className="block text-xs md:text-sm text-[#888] mb-1.5 md:mb-2">
             Total Supply
           </label>
           <input
@@ -95,7 +95,7 @@ export function CreateTokenForm() {
             value={totalSupply}
             onChange={(e) => setTotalSupply(e.target.value.replace(/[^0-9]/g, ''))}
             placeholder="e.g. 1000000000"
-            className="w-full px-4 py-3 rounded-lg tabular-nums"
+            className="w-full px-3 py-2.5 md:px-4 md:py-3 rounded-lg tabular-nums text-sm md:text-base"
             disabled={!isConnected || isPending || isConfirming}
             autoComplete="off"
             required
@@ -105,8 +105,8 @@ export function CreateTokenForm() {
           </p>
         </div>
 
-        <div className="pt-2">
-          <div className="flex items-center justify-between text-sm mb-4 p-3 bg-[#111] rounded-lg">
+        <div className="pt-1 md:pt-2">
+          <div className="flex items-center justify-between text-xs md:text-sm mb-3 md:mb-4 p-2.5 md:p-3 bg-[#111] rounded-lg">
             <span className="text-[#888]">Deployment Fee</span>
             <span className="tabular-nums">
               {deploymentFee ? formatEther(deploymentFee) : '0.00022'} BNB
@@ -116,7 +116,7 @@ export function CreateTokenForm() {
           <button
             type="submit"
             disabled={!isConnected || isPending || isConfirming || !name || !symbol || !totalSupply}
-            className="w-full py-3 px-4 bg-white text-black font-semibold rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full py-2.5 md:py-3 px-4 text-sm md:text-base bg-white text-black font-semibold rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {!isConnected
               ? 'Connect Wallet'
@@ -130,16 +130,16 @@ export function CreateTokenForm() {
       </form>
 
       {error && (
-        <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-          <p className="text-red-400 text-sm">
+        <div className="mt-3 md:mt-4 p-3 md:p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <p className="text-red-400 text-xs md:text-sm">
             Error: {error.message.split('\n')[0]}
           </p>
         </div>
       )}
 
       {isSuccess && hash && (
-        <div className="mt-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-          <p className="text-green-400 text-sm mb-2">Token created successfully!</p>
+        <div className="mt-3 md:mt-4 p-3 md:p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+          <p className="text-green-400 text-xs md:text-sm mb-2">Token created successfully!</p>
           <a
             href={`https://bscscan.com/tx/${hash}`}
             target="_blank"
@@ -151,9 +151,9 @@ export function CreateTokenForm() {
         </div>
       )}
 
-      <div className="mt-6 pt-6 border-t border-[#1a1a1a]">
-        <h3 className="text-sm font-medium text-[#888] mb-3">Default Settings</h3>
-        <ul className="text-xs text-[#666] space-y-1">
+      <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-[#1a1a1a]">
+        <h3 className="text-xs md:text-sm font-medium text-[#888] mb-2 md:mb-3">Default Settings</h3>
+        <ul className="text-xs text-[#666] space-y-0.5 md:space-y-1">
           <li>• All taxes start at 0%</li>
           <li>• Marketing, Team & Treasury wallets set to your address</li>
           <li>• Swap threshold: 0.02% of supply</li>
