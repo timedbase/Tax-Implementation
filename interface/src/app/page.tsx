@@ -1,10 +1,16 @@
+'use client';
+
+import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { CreateTokenForm } from '@/components/CreateTokenForm';
 import { MyTokens } from '@/components/MyTokens';
 import { FactoryStats } from '@/components/FactoryStats';
 import { ContractAddressWarning } from '@/components/ContractAddressWarning';
+import LiquidityAndSwap from '@/components/LiquidityAndSwap';
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<'create' | 'trade'>('create');
+
   return (
     <div className="min-h-dvh bg-black">
       <Header />
@@ -27,11 +33,43 @@ export default function Home() {
         {/* Stats */}
         <FactoryStats />
 
-        {/* Main Content */}
-        <div className="grid md:grid-cols-2 gap-4 md:gap-8">
-          <CreateTokenForm />
-          <MyTokens />
+        {/* Tabs */}
+        <div className="mb-8">
+          <div className="border-b border-[#1a1a1a]">
+            <nav className="flex gap-8" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('create')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'create'
+                    ? 'border-white text-white'
+                    : 'border-transparent text-[#888] hover:text-white hover:border-[#333]'
+                }`}
+              >
+                Create Token
+              </button>
+              <button
+                onClick={() => setActiveTab('trade')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'trade'
+                    ? 'border-white text-white'
+                    : 'border-transparent text-[#888] hover:text-white hover:border-[#333]'
+                }`}
+              >
+                Add Liquidity & Buy
+              </button>
+            </nav>
+          </div>
         </div>
+
+        {/* Main Content */}
+        {activeTab === 'create' && (
+          <div className="grid md:grid-cols-2 gap-4 md:gap-8">
+            <CreateTokenForm />
+            <MyTokens />
+          </div>
+        )}
+
+        {activeTab === 'trade' && <LiquidityAndSwap />}
 
         {/* Features */}
         <div className="mt-6 md:mt-12 grid md:grid-cols-3 gap-3 md:gap-6">
