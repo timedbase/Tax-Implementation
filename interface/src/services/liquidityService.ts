@@ -29,7 +29,7 @@ export interface AddLiquidityResult {
  * Uses MEV RPC for writes, regular BSC RPC for reads
  */
 export async function addLiquidity(params: AddLiquidityParams): Promise<AddLiquidityResult> {
-  const { privateKey, tokenAddress, tokenAmount, bnbAmount, slippageTolerance = 0.5 } = params;
+  const { privateKey, tokenAddress, tokenAmount, bnbAmount } = params;
 
   try {
     const { writeClient, readClient, address } = createWalletFromPrivateKey(privateKey, PANCAKESWAP_MEV_RPC);
@@ -44,9 +44,9 @@ export async function addLiquidity(params: AddLiquidityParams): Promise<AddLiqui
     const tokenAmountBigInt = parseEther(tokenAmount) / BigInt(10 ** (18 - decimals));
     const bnbAmountBigInt = parseEther(bnbAmount);
 
-    const slippageMultiplier = BigInt(Math.floor((100 - slippageTolerance) * 100));
-    const tokenAmountMin = (tokenAmountBigInt * slippageMultiplier) / BigInt(10000);
-    const bnbAmountMin = (bnbAmountBigInt * slippageMultiplier) / BigInt(10000);
+    // Use 0 for min amounts - for initial liquidity or to avoid INSUFFICIENT_AMOUNT errors
+    const tokenAmountMin = BigInt(0);
+    const bnbAmountMin = BigInt(0);
 
     // Check and approve token if needed
     const allowance = await readClient.readContract({
