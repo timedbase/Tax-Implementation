@@ -39,9 +39,9 @@ export async function getAmountsOut(
   path: Address[],
   privateKey: `0x${string}`
 ): Promise<readonly bigint[]> {
-  const { client } = createWalletFromPrivateKey(privateKey);
+  const { readClient } = createWalletFromPrivateKey(privateKey);
 
-  const amounts = await client.readContract({
+  const amounts = await readClient.readContract({
     address: PANCAKESWAP_ROUTER_ADDRESS,
     abi: PANCAKESWAP_ROUTER_ABI,
     functionName: 'getAmountsOut',
@@ -53,18 +53,20 @@ export async function getAmountsOut(
 
 /**
  * Buy tokens with exact BNB using swapExactETHForTokens (fast, no quote needed)
+ * Uses MEV RPC for write, regular RPC for reads
  */
 export async function buyTokenExact(params: BuyTokenParams): Promise<SwapResult> {
   const { privateKey, tokenAddress, bnbAmount } = params;
 
   try {
-    const { client, address } = createWalletFromPrivateKey(privateKey, PANCAKESWAP_MEV_RPC);
+    const { writeClient, readClient, address } = createWalletFromPrivateKey(privateKey, PANCAKESWAP_MEV_RPC);
     const bnbAmountBigInt = parseEther(bnbAmount);
     const path: Address[] = [WBNB_ADDRESS, tokenAddress];
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
 
     // swapExactETHForTokens with amountOutMin = 0 (accept any amount)
-    const hash = await client.writeContract({
+    // Uses MEV-protected RPC for sending transaction
+    const hash = await writeClient.writeContract({
       address: PANCAKESWAP_ROUTER_ADDRESS,
       abi: PANCAKESWAP_ROUTER_ABI,
       functionName: 'swapExactETHForTokens',
@@ -72,7 +74,8 @@ export async function buyTokenExact(params: BuyTokenParams): Promise<SwapResult>
       value: bnbAmountBigInt,
     });
 
-    const receipt = await client.waitForTransactionReceipt({ hash });
+    // Use regular RPC for reading receipt
+    const receipt = await readClient.waitForTransactionReceipt({ hash });
 
     return {
       success: receipt.status === 'success',
@@ -94,14 +97,12 @@ export async function buyToken(params: BuyTokenParams): Promise<SwapResult> {
   const { privateKey, tokenAddress, bnbAmount, slippageTolerance = 0.5 } = params;
 
   try {
-    // Create wallet client
-    const { client, address } = createWalletFromPrivateKey(privateKey);
+    const { writeClient, readClient, address } = createWalletFromPrivateKey(privateKey);
 
-    // Calculate amounts
     const bnbAmountBigInt = parseEther(bnbAmount);
 
     // Check BNB balance
-    const bnbBalance = await client.getBalance({ address });
+    const bnbBalance = await readClient.getBalance({ address });
 
     if (bnbBalance < bnbAmountBigInt) {
       return {
@@ -119,20 +120,10 @@ export async function buyToken(params: BuyTokenParams): Promise<SwapResult> {
     const slippageMultiplier = BigInt(Math.floor((100 - slippageTolerance) * 100));
     const amountOutMin = (expectedOutput * slippageMultiplier) / BigInt(10000);
 
-    // Set deadline (20 minutes from now)
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
 
-    console.log('Buying tokens...', {
-      bnbAmount: bnbAmountBigInt.toString(),
-      expectedOutput: expectedOutput.toString(),
-      amountOutMin: amountOutMin.toString(),
-      path,
-      to: address,
-      deadline: deadline.toString(),
-    });
-
-    // Execute swap (supporting fee-on-transfer tokens)
-    const hash = await client.writeContract({
+    // Execute swap
+    const hash = await writeClient.writeContract({
       address: PANCAKESWAP_ROUTER_ADDRESS,
       abi: PANCAKESWAP_ROUTER_ABI,
       functionName: 'swapExactETHForTokensSupportingFeeOnTransferTokens',
@@ -140,8 +131,7 @@ export async function buyToken(params: BuyTokenParams): Promise<SwapResult> {
       value: bnbAmountBigInt,
     });
 
-    // Wait for transaction receipt
-    const receipt = await client.waitForTransactionReceipt({ hash });
+    const receipt = await readClient.waitForTransactionReceipt({ hash });
 
     if (receipt.status === 'success') {
       return {
@@ -173,21 +163,19 @@ export async function sellToken(params: SellTokenParams): Promise<SwapResult> {
   const { privateKey, tokenAddress, tokenAmount, slippageTolerance = 0.5 } = params;
 
   try {
-    // Create wallet client
-    const { client, address } = createWalletFromPrivateKey(privateKey);
+    const { writeClient, readClient, address } = createWalletFromPrivateKey(privateKey);
 
     // Get token decimals
-    const decimals = await client.readContract({
+    const decimals = await readClient.readContract({
       address: tokenAddress,
       abi: ERC20_ABI,
       functionName: 'decimals',
     });
 
-    // Calculate amounts
     const tokenAmountBigInt = parseEther(tokenAmount) / BigInt(10 ** (18 - decimals));
 
     // Check token balance
-    const tokenBalance = await client.readContract({
+    const tokenBalance = await readClient.readContract({
       address: tokenAddress,
       abi: ERC20_ABI,
       functionName: 'balanceOf',
@@ -202,7 +190,7 @@ export async function sellToken(params: SellTokenParams): Promise<SwapResult> {
     }
 
     // Check and approve token if needed
-    const allowance = await client.readContract({
+    const allowance = await readClient.readContract({
       address: tokenAddress,
       abi: ERC20_ABI,
       functionName: 'allowance',
@@ -210,17 +198,13 @@ export async function sellToken(params: SellTokenParams): Promise<SwapResult> {
     });
 
     if (allowance < tokenAmountBigInt) {
-      console.log('Approving token...');
-      const approveHash = await client.writeContract({
+      const approveHash = await writeClient.writeContract({
         address: tokenAddress,
         abi: ERC20_ABI,
         functionName: 'approve',
         args: [PANCAKESWAP_ROUTER_ADDRESS, tokenAmountBigInt],
       });
-
-      // Wait for approval transaction
-      await client.waitForTransactionReceipt({ hash: approveHash });
-      console.log('Token approved:', approveHash);
+      await readClient.waitForTransactionReceipt({ hash: approveHash });
     }
 
     // Get expected output
@@ -228,32 +212,18 @@ export async function sellToken(params: SellTokenParams): Promise<SwapResult> {
     const amounts = await getAmountsOut(tokenAmountBigInt, path, privateKey);
     const expectedOutput = amounts[1];
 
-    // Calculate minimum output with slippage
     const slippageMultiplier = BigInt(Math.floor((100 - slippageTolerance) * 100));
     const amountOutMin = (expectedOutput * slippageMultiplier) / BigInt(10000);
-
-    // Set deadline (20 minutes from now)
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
 
-    console.log('Selling tokens...', {
-      tokenAmount: tokenAmountBigInt.toString(),
-      expectedOutput: expectedOutput.toString(),
-      amountOutMin: amountOutMin.toString(),
-      path,
-      to: address,
-      deadline: deadline.toString(),
-    });
-
-    // Execute swap (supporting fee-on-transfer tokens)
-    const hash = await client.writeContract({
+    const hash = await writeClient.writeContract({
       address: PANCAKESWAP_ROUTER_ADDRESS,
       abi: PANCAKESWAP_ROUTER_ABI,
       functionName: 'swapExactTokensForETHSupportingFeeOnTransferTokens',
       args: [tokenAmountBigInt, amountOutMin, path, address, deadline],
     });
 
-    // Wait for transaction receipt
-    const receipt = await client.waitForTransactionReceipt({ hash });
+    const receipt = await readClient.waitForTransactionReceipt({ hash });
 
     if (receipt.status === 'success') {
       return {
@@ -310,10 +280,9 @@ export async function getQuoteSellToken(
   privateKey: `0x${string}`
 ): Promise<{ expectedOutput: string; priceImpact: number } | null> {
   try {
-    const { client } = createWalletFromPrivateKey(privateKey);
+    const { readClient } = createWalletFromPrivateKey(privateKey);
 
-    // Get token decimals
-    const decimals = await client.readContract({
+    const decimals = await readClient.readContract({
       address: tokenAddress,
       abi: ERC20_ABI,
       functionName: 'decimals',
@@ -325,7 +294,7 @@ export async function getQuoteSellToken(
 
     return {
       expectedOutput: formatEther(amounts[1]),
-      priceImpact: 0, // You can calculate price impact if needed
+      priceImpact: 0,
     };
   } catch (error) {
     console.error('Get quote error:', error);

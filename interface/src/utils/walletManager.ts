@@ -1,21 +1,33 @@
-import { createWalletClient, http, publicActions, type Address, type Hash } from 'viem';
+import { createWalletClient, createPublicClient, http, type Address, type Hash } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { bsc } from 'viem/chains';
 
+const BSC_RPC = process.env.NEXT_PUBLIC_BSC_RPC || 'https://bsc-dataseed.binance.org';
+
 /**
- * Create a wallet client from a private key
+ * Create wallet and public clients from a private key
+ * @param privateKey - The private key
+ * @param writeRpcUrl - RPC for write operations only (MEV-protected). Reads always use BSC_RPC
  */
-export function createWalletFromPrivateKey(privateKey: `0x${string}`, rpcUrl?: string) {
+export function createWalletFromPrivateKey(privateKey: `0x${string}`, writeRpcUrl?: string) {
   const account = privateKeyToAccount(privateKey);
 
-  const client = createWalletClient({
+  // Write client - uses MEV RPC for sending transactions
+  const writeClient = createWalletClient({
     account,
     chain: bsc,
-    transport: http(rpcUrl),
-  }).extend(publicActions);
+    transport: http(writeRpcUrl || BSC_RPC),
+  });
+
+  // Read client - always uses regular BSC RPC
+  const readClient = createPublicClient({
+    chain: bsc,
+    transport: http(BSC_RPC),
+  });
 
   return {
-    client,
+    writeClient,
+    readClient,
     account,
     address: account.address,
   };
@@ -24,8 +36,8 @@ export function createWalletFromPrivateKey(privateKey: `0x${string}`, rpcUrl?: s
 /**
  * Get wallet balance
  */
-export async function getWalletBalance(address: Address, client: ReturnType<typeof createWalletFromPrivateKey>['client']) {
-  return await client.getBalance({ address });
+export async function getWalletBalance(address: Address, readClient: ReturnType<typeof createWalletFromPrivateKey>['readClient']) {
+  return await readClient.getBalance({ address });
 }
 
 /**
