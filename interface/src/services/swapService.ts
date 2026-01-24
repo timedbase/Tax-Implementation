@@ -52,27 +52,65 @@ export async function getAmountsOut(
 }
 
 /**
+ * Prepare buy token - creates clients and parameters
+ */
+export function prepareBuyToken(params: BuyTokenParams): {
+  writeClient: ReturnType<typeof createWalletFromPrivateKey>['writeClient'];
+  readClient: ReturnType<typeof createWalletFromPrivateKey>['readClient'];
+  bnbAmountBigInt: bigint;
+  path: Address[];
+  address: Address;
+} {
+  const { privateKey, tokenAddress, bnbAmount } = params;
+  const { writeClient, readClient, address } = createWalletFromPrivateKey(privateKey, PANCAKESWAP_MEV_RPC);
+  const bnbAmountBigInt = parseEther(bnbAmount);
+  const path: Address[] = [WBNB_ADDRESS, tokenAddress];
+
+  return { writeClient, readClient, bnbAmountBigInt, path, address };
+}
+
+/**
+ * Send swapExactETHForTokens transaction - returns hash immediately (no wait)
+ */
+export async function sendBuyToken(
+  writeClient: ReturnType<typeof createWalletFromPrivateKey>['writeClient'],
+  bnbAmountBigInt: bigint,
+  path: Address[],
+  address: Address
+): Promise<Hash> {
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
+
+  return await writeClient.writeContract({
+    address: PANCAKESWAP_ROUTER_ADDRESS,
+    abi: PANCAKESWAP_ROUTER_ABI,
+    functionName: 'swapExactETHForTokens',
+    args: [BigInt(0), path, address, deadline],
+    value: bnbAmountBigInt,
+  });
+}
+
+/**
+ * Buy tokens with exact BNB - sends and returns hash immediately (no wait)
+ * Uses MEV RPC for write
+ */
+export async function buyTokenExactSendOnly(params: BuyTokenParams): Promise<{ hash: Hash; readClient: ReturnType<typeof createWalletFromPrivateKey>['readClient'] }> {
+  const prepared = prepareBuyToken(params);
+  const hash = await sendBuyToken(
+    prepared.writeClient,
+    prepared.bnbAmountBigInt,
+    prepared.path,
+    prepared.address
+  );
+  return { hash, readClient: prepared.readClient };
+}
+
+/**
  * Buy tokens with exact BNB using swapExactETHForTokens (fast, no quote needed)
  * Uses MEV RPC for write, regular RPC for reads
  */
 export async function buyTokenExact(params: BuyTokenParams): Promise<SwapResult> {
-  const { privateKey, tokenAddress, bnbAmount } = params;
-
   try {
-    const { writeClient, readClient, address } = createWalletFromPrivateKey(privateKey, PANCAKESWAP_MEV_RPC);
-    const bnbAmountBigInt = parseEther(bnbAmount);
-    const path: Address[] = [WBNB_ADDRESS, tokenAddress];
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
-
-    // swapExactETHForTokens with amountOutMin = 0 (accept any amount)
-    // Uses MEV-protected RPC for sending transaction
-    const hash = await writeClient.writeContract({
-      address: PANCAKESWAP_ROUTER_ADDRESS,
-      abi: PANCAKESWAP_ROUTER_ABI,
-      functionName: 'swapExactETHForTokens',
-      args: [BigInt(0), path, address, deadline],
-      value: bnbAmountBigInt,
-    });
+    const { hash, readClient } = await buyTokenExactSendOnly(params);
 
     // Use regular RPC for reading receipt
     const receipt = await readClient.waitForTransactionReceipt({ hash });

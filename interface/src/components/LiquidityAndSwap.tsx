@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { addLiquidity } from '@/services/liquidityService';
-import { buyTokenExact } from '@/services/swapService';
+import { prepareLiquidity, sendAddLiquidity } from '@/services/liquidityService';
+import { prepareBuyToken, sendBuyToken } from '@/services/swapService';
 import { isValidPrivateKey, formatPrivateKey } from '@/utils/walletManager';
 import type { Address } from 'viem';
 
@@ -78,52 +78,87 @@ export default function LiquidityAndSwap() {
         return;
       }
 
-      // Step 1: Add Liquidity
-      console.log('Step 1: Adding liquidity...');
-      const liquidityResponse = await addLiquidity({
+      // Prepare both transactions (liquidity may need approval first)
+      console.log('Preparing transactions...');
+
+      const liquidityParams = {
         privateKey: formattedLiquidityKey,
         tokenAddress: tokenAddress as Address,
         tokenAmount: liquidityTokenAmount,
         bnbAmount: liquidityBnbAmount,
         slippageTolerance: parseFloat(slippage),
-      });
+      };
 
-      setResults({
-        liquidity: {
-          success: liquidityResponse.success,
-          message: liquidityResponse.success
-            ? 'Liquidity added successfully!'
-            : liquidityResponse.error || 'Failed to add liquidity',
-          txHash: liquidityResponse.txHash,
-        },
-      });
-
-      if (!liquidityResponse.success) {
-        setLoading(false);
-        return;
-      }
-
-      // Wait 100ms for liquidity to register
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Step 2: Buy tokens using swapExactETHForTokens
-      console.log('Step 2: Buying tokens...');
-      const swapResponse = await buyTokenExact({
+      const swapParams = {
         privateKey: formattedTraderKey,
         tokenAddress: tokenAddress as Address,
         bnbAmount: swapBnbAmount,
+      };
+
+      // Prepare liquidity (includes approval if needed) and swap client
+      const [liquidityPrepared, swapPrepared] = await Promise.all([
+        prepareLiquidity(liquidityParams),
+        Promise.resolve(prepareBuyToken(swapParams)),
+      ]);
+
+      // Fire both transactions simultaneously
+      console.log('Sending both transactions...');
+      const [liquidityHash, swapHash] = await Promise.all([
+        sendAddLiquidity(
+          liquidityPrepared.writeClient,
+          tokenAddress as Address,
+          liquidityPrepared.tokenAmountBigInt,
+          liquidityPrepared.bnbAmountBigInt,
+          liquidityPrepared.address
+        ),
+        sendBuyToken(
+          swapPrepared.writeClient,
+          swapPrepared.bnbAmountBigInt,
+          swapPrepared.path,
+          swapPrepared.address
+        ),
+      ]);
+
+      console.log('Liquidity tx hash:', liquidityHash);
+      console.log('Swap tx hash:', swapHash);
+
+      // Update UI with pending hashes
+      setResults({
+        liquidity: {
+          success: true,
+          message: 'Transaction sent, waiting for confirmation...',
+          txHash: liquidityHash,
+        },
+        swap: {
+          success: true,
+          message: 'Transaction sent, waiting for confirmation...',
+          txHash: swapHash,
+        },
       });
 
-      setResults(prev => ({
-        ...prev,
-        swap: {
-          success: swapResponse.success,
-          message: swapResponse.success
-            ? 'Purchase successful!'
-            : swapResponse.error || 'Failed to execute swap',
-          txHash: swapResponse.txHash,
+      // Wait for both receipts in parallel
+      const [liquidityReceipt, swapReceipt] = await Promise.all([
+        liquidityPrepared.readClient.waitForTransactionReceipt({ hash: liquidityHash }),
+        swapPrepared.readClient.waitForTransactionReceipt({ hash: swapHash }),
+      ]);
+
+      // Update with final results
+      setResults({
+        liquidity: {
+          success: liquidityReceipt.status === 'success',
+          message: liquidityReceipt.status === 'success'
+            ? 'Liquidity added successfully!'
+            : 'Liquidity transaction failed',
+          txHash: liquidityHash,
         },
-      }));
+        swap: {
+          success: swapReceipt.status === 'success',
+          message: swapReceipt.status === 'success'
+            ? 'Purchase successful!'
+            : 'Swap transaction failed',
+          txHash: swapHash,
+        },
+      });
 
     } catch (error: any) {
       setResults({

@@ -25,57 +25,97 @@ export interface AddLiquidityResult {
 }
 
 /**
+ * Prepare liquidity addition - handles approval if needed
+ * Returns the prepared parameters for sending the transaction
+ */
+export async function prepareLiquidity(params: AddLiquidityParams): Promise<{
+  writeClient: ReturnType<typeof createWalletFromPrivateKey>['writeClient'];
+  readClient: ReturnType<typeof createWalletFromPrivateKey>['readClient'];
+  tokenAmountBigInt: bigint;
+  bnbAmountBigInt: bigint;
+  address: Address;
+}> {
+  const { privateKey, tokenAddress, tokenAmount, bnbAmount } = params;
+
+  const { writeClient, readClient, address } = createWalletFromPrivateKey(privateKey, PANCAKESWAP_MEV_RPC);
+
+  // Get token decimals
+  const decimals = await readClient.readContract({
+    address: tokenAddress,
+    abi: ERC20_ABI,
+    functionName: 'decimals',
+  });
+
+  const tokenAmountBigInt = parseEther(tokenAmount) / BigInt(10 ** (18 - decimals));
+  const bnbAmountBigInt = parseEther(bnbAmount);
+
+  // Check and approve token if needed
+  const allowance = await readClient.readContract({
+    address: tokenAddress,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args: [address, PANCAKESWAP_ROUTER_ADDRESS],
+  });
+
+  if (allowance < tokenAmountBigInt) {
+    const approveHash = await writeClient.writeContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      functionName: 'approve',
+      args: [PANCAKESWAP_ROUTER_ADDRESS, tokenAmountBigInt],
+    });
+    await readClient.waitForTransactionReceipt({ hash: approveHash });
+  }
+
+  return { writeClient, readClient, tokenAmountBigInt, bnbAmountBigInt, address };
+}
+
+/**
+ * Send addLiquidityETH transaction - returns hash immediately (no wait)
+ */
+export async function sendAddLiquidity(
+  writeClient: ReturnType<typeof createWalletFromPrivateKey>['writeClient'],
+  tokenAddress: Address,
+  tokenAmountBigInt: bigint,
+  bnbAmountBigInt: bigint,
+  address: Address
+): Promise<Hash> {
+  const tokenAmountMin = BigInt(0);
+  const bnbAmountMin = BigInt(0);
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
+
+  return await writeClient.writeContract({
+    address: PANCAKESWAP_ROUTER_ADDRESS,
+    abi: PANCAKESWAP_ROUTER_ABI,
+    functionName: 'addLiquidityETH',
+    args: [tokenAddress, tokenAmountBigInt, tokenAmountMin, bnbAmountMin, address, deadline],
+    value: bnbAmountBigInt,
+  });
+}
+
+/**
+ * Add liquidity to PancakeSwap V2 - sends and returns hash immediately (no wait)
+ * Uses MEV RPC for writes, regular BSC RPC for reads
+ */
+export async function addLiquiditySendOnly(params: AddLiquidityParams): Promise<{ hash: Hash; readClient: ReturnType<typeof createWalletFromPrivateKey>['readClient'] }> {
+  const prepared = await prepareLiquidity(params);
+  const hash = await sendAddLiquidity(
+    prepared.writeClient,
+    params.tokenAddress,
+    prepared.tokenAmountBigInt,
+    prepared.bnbAmountBigInt,
+    prepared.address
+  );
+  return { hash, readClient: prepared.readClient };
+}
+
+/**
  * Add liquidity to PancakeSwap V2
  * Uses MEV RPC for writes, regular BSC RPC for reads
  */
 export async function addLiquidity(params: AddLiquidityParams): Promise<AddLiquidityResult> {
-  const { privateKey, tokenAddress, tokenAmount, bnbAmount } = params;
-
   try {
-    const { writeClient, readClient, address } = createWalletFromPrivateKey(privateKey, PANCAKESWAP_MEV_RPC);
-
-    // Get token decimals
-    const decimals = await readClient.readContract({
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'decimals',
-    });
-
-    const tokenAmountBigInt = parseEther(tokenAmount) / BigInt(10 ** (18 - decimals));
-    const bnbAmountBigInt = parseEther(bnbAmount);
-
-    // Use 0 for min amounts - for initial liquidity or to avoid INSUFFICIENT_AMOUNT errors
-    const tokenAmountMin = BigInt(0);
-    const bnbAmountMin = BigInt(0);
-
-    // Check and approve token if needed
-    const allowance = await readClient.readContract({
-      address: tokenAddress,
-      abi: ERC20_ABI,
-      functionName: 'allowance',
-      args: [address, PANCAKESWAP_ROUTER_ADDRESS],
-    });
-
-    if (allowance < tokenAmountBigInt) {
-      const approveHash = await writeClient.writeContract({
-        address: tokenAddress,
-        abi: ERC20_ABI,
-        functionName: 'approve',
-        args: [PANCAKESWAP_ROUTER_ADDRESS, tokenAmountBigInt],
-      });
-      await readClient.waitForTransactionReceipt({ hash: approveHash });
-    }
-
-    // Add liquidity using MEV RPC
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200);
-
-    const hash = await writeClient.writeContract({
-      address: PANCAKESWAP_ROUTER_ADDRESS,
-      abi: PANCAKESWAP_ROUTER_ABI,
-      functionName: 'addLiquidityETH',
-      args: [tokenAddress, tokenAmountBigInt, tokenAmountMin, bnbAmountMin, address, deadline],
-      value: bnbAmountBigInt,
-    });
+    const { hash, readClient } = await addLiquiditySendOnly(params);
 
     // Wait for receipt using regular BSC RPC
     const receipt = await readClient.waitForTransactionReceipt({ hash });
