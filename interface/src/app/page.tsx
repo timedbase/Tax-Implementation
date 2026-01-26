@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { CreateTokenForm } from '@/components/CreateTokenForm';
+import { CreateReflectionTokenForm } from '@/components/CreateReflectionTokenForm';
 import { MyTokens } from '@/components/MyTokens';
+import { MyReflectionTokens } from '@/components/MyReflectionTokens';
 import { FactoryStats } from '@/components/FactoryStats';
 import { ContractAddressWarning } from '@/components/ContractAddressWarning';
 import LiquidityAndSwap from '@/components/LiquidityAndSwap';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'create' | 'trade'>('create');
+  const [tokenType, setTokenType] = useState<'tax' | 'reflection'>('tax');
 
   return (
     <div className="min-h-dvh bg-black">
@@ -19,10 +22,10 @@ export default function Home() {
         {/* Hero Section */}
         <div className="text-center mb-6 md:mb-12">
           <h1 className="text-2xl md:text-4xl font-bold mb-2 md:mb-4 text-balance">
-            Deploy Your Tax Token
+            Deploy Your Token
           </h1>
           <p className="text-sm md:text-base text-[#888] max-w-xl mx-auto text-pretty">
-            Create your own ERC20 token with configurable buy/sell taxes on BSC.
+            Create Tax Tokens or Reflection Tokens with configurable settings on BSC.
             No coding required. Full control over your token settings.
           </p>
         </div>
@@ -63,16 +66,67 @@ export default function Home() {
 
         {/* Main Content */}
         {activeTab === 'create' && (
-          <div className="grid md:grid-cols-2 gap-4 md:gap-8">
-            <CreateTokenForm />
-            <MyTokens />
-          </div>
+          <>
+            {/* Token Type Selector */}
+            <div className="flex justify-center mb-6">
+              <div className="inline-flex bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg p-1">
+                <button
+                  onClick={() => setTokenType('tax')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    tokenType === 'tax'
+                      ? 'bg-white text-black'
+                      : 'text-[#888] hover:text-white'
+                  }`}
+                >
+                  Tax Token
+                </button>
+                <button
+                  onClick={() => setTokenType('reflection')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    tokenType === 'reflection'
+                      ? 'bg-purple-500 text-white'
+                      : 'text-[#888] hover:text-white'
+                  }`}
+                >
+                  Reflection Token
+                </button>
+              </div>
+            </div>
+
+            {/* Token Type Description */}
+            <div className="text-center mb-6">
+              {tokenType === 'tax' ? (
+                <p className="text-xs text-[#666]">
+                  Standard tax token with marketing, team, treasury, burn & liquidity taxes
+                </p>
+              ) : (
+                <p className="text-xs text-purple-400/80">
+                  RFI-style token that automatically distributes rewards to all holders
+                </p>
+              )}
+            </div>
+
+            {/* Forms based on token type */}
+            <div className="grid md:grid-cols-2 gap-4 md:gap-8">
+              {tokenType === 'tax' ? (
+                <>
+                  <CreateTokenForm />
+                  <MyTokens />
+                </>
+              ) : (
+                <>
+                  <CreateReflectionTokenForm />
+                  <MyReflectionTokens />
+                </>
+              )}
+            </div>
+          </>
         )}
 
         {activeTab === 'trade' && <LiquidityAndSwap />}
 
         {/* Features */}
-        <div className="mt-6 md:mt-12 grid md:grid-cols-3 gap-3 md:gap-6">
+        <div className="mt-6 md:mt-12 grid md:grid-cols-4 gap-3 md:gap-6">
           <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-4 md:p-6">
             <div className="w-8 h-8 md:w-10 md:h-10 bg-[#1a1a1a] rounded-lg flex items-center justify-center mb-2 md:mb-4" aria-hidden="true">
               <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,7 +135,19 @@ export default function Home() {
             </div>
             <h3 className="text-sm md:text-base font-semibold mb-1 md:mb-2 text-balance">Configurable Taxes</h3>
             <p className="text-xs md:text-sm text-[#666] text-pretty">
-              Set custom buy & sell taxes for marketing, team, treasury, burn, & liquidity.
+              Set custom buy & sell taxes for marketing, team, burn, & liquidity.
+            </p>
+          </div>
+
+          <div className="bg-[#0a0a0a] border border-purple-500/20 rounded-xl p-4 md:p-6">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-2 md:mb-4" aria-hidden="true">
+              <svg className="w-4 h-4 md:w-5 md:h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <h3 className="text-sm md:text-base font-semibold mb-1 md:mb-2 text-balance text-purple-400">Auto Reflections</h3>
+            <p className="text-xs md:text-sm text-[#666] text-pretty">
+              RFI tokens auto-distribute rewards to all holders. No claiming needed.
             </p>
           </div>
 
@@ -93,7 +159,7 @@ export default function Home() {
             </div>
             <h3 className="text-sm md:text-base font-semibold mb-1 md:mb-2 text-balance">Full Ownership</h3>
             <p className="text-xs md:text-sm text-[#666] text-pretty">
-              You have complete control. Update wallets, taxes, router, & more anytime.
+              Complete control. Update wallets, taxes, router anytime.
             </p>
           </div>
 
@@ -105,7 +171,7 @@ export default function Home() {
             </div>
             <h3 className="text-sm md:text-base font-semibold mb-1 md:mb-2 text-balance">Instant Deploy</h3>
             <p className="text-xs md:text-sm text-[#666] text-pretty">
-              Deploy in seconds using our gas-efficient tool
+              Deploy in seconds with gas-efficient clones.
             </p>
           </div>
         </div>
